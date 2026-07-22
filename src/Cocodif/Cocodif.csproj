@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Sanet.Cocodif</RootNamespace>
+    <AssemblyName>Cocodif</AssemblyName>
+
+    <!-- Cocodif version — independent of any other product -->
+    <CocodifVersion>0.1.0</CocodifVersion>
+    <Version>$(CocodifVersion)</Version>
+    <AssemblyVersion>$(CocodifVersion).0</AssemblyVersion>
+    <FileVersion>$(CocodifVersion).0</FileVersion>
+
+    <!-- NuGet Global Tool -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>Cocodif</ToolCommandName>
+    <PackageId>Sanet.Cocodif</PackageId>
+    <Authors>Anton Makarevich</Authors>
+    <Description>Diff-coverage reporter for .NET — generates PR-friendly Markdown/JSON reports from OpenCover or Cobertura XML coverage data.</Description>
+    <PackageTags>code-coverage;diff;opencover;cobertura;pr;github;coverage</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Cocodif.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+  </ItemGroup>
+
+</Project>

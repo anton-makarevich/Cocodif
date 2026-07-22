@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CoverageSession>
+  <Modules>
+    <Module>
+      <Files>
+        <File uid="1" fullPath="/home/user/repo/src/Lib/Helper.cs" />
+        <File uid="2" fullPath="/home/user/repo/src/Lib/Util.cs" />
+      </Files>
+      <Classes>
+        <Class>
+          <Methods>
+            <Method>
+              <SequencePoints>
+                <SequencePoint vc="0" fileid="1" sl="8" />
+                <SequencePoint vc="1" fileid="1" sl="9" />
+                <SequencePoint vc="0" fileid="2" sl="3" />
+                <SequencePoint vc="0" fileid="2" sl="7" />
+              </SequencePoints>
+            </Method>
+          </Methods>
+        </Class>
+      </Classes>
+    </Module>
+  </Modules>
+</CoverageSession>

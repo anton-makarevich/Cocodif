@@ -1,0 +1,156 @@
+name: 'Cocodif Coverage Diff'
+description: 'Generate diff-coverage reports from OpenCover/Cobertura XML and post them as PR comments or step summaries.'
+author: 'Anton Makarevich'
+
+branding:
+  icon: 'bar-chart-2'
+  color: 'green'
+
+inputs:
+  coverage-files:
+    description: 'Glob pattern or comma-separated list of coverage XML file paths'
+    required: true
+  changed-files:
+    description: 'Path to file listing changed files (one per line). If omitted, computed via git diff.'
+    required: false
+    default: ''
+  format:
+    description: 'Coverage format: auto, opencover, or cobertura'
+    required: false
+    default: 'auto'
+  include:
+    description: 'Glob pattern for files to include'
+    required: false
+    default: '**/*'
+  exclude:
+    description: 'Glob pattern for files to exclude'
+    required: false
+    default: '**/obj/**,**/bin/**'
+  title:
+    description: 'Report title'
+    required: false
+    default: 'Coverage Report'
+  output-format:
+    description: 'Output format: markdown, json, or both'
+    required: false
+    default: 'markdown'
+  fail-under:
+    description: 'Fail if overall diff coverage is below this percentage'
+    required: false
+    default: ''
+  comment:
+    description: 'Post the report as a PR comment'
+    required: false
+    default: 'true'
+  comment-marker:
+    description: 'HTML comment marker for sticky PR comment (update-or-create)'
+    required: false
+    default: '<!-- cocodif-coverage -->'
+  summary:
+    description: 'Write the report to $GITHUB_STEP_SUMMARY'
+    required: false
+    default: 'true'
+  cocodif-version:
+    description: 'Version of the Cocodif NuGet tool to install'
+    required: false
+    default: '0.1.0'
+
+outputs:
+  coverage-percent:
+    description: 'Overall diff-coverage percentage'
+    value: ${{ steps.cocodif.outputs.coverage-percent }}
+  report-path:
+    description: 'Path to the generated report file'
+    value: ${{ steps.cocodif.outputs.report-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Install Cocodif
+      shell: bash
+      run: dotnet tool install --global Sanet.Cocodif --version ${{ inputs.cocodif-version }}
+
+    - name: Compute changed files
+      if: ${{ inputs.changed-files == '' }}
+      id: diff
+      shell: bash
+      run: |
+        git diff --name-only --merge-base origin/${{ github.event.pull_request.base.ref }} HEAD > ${{ runner.temp }}/changed-files.txt
+        echo "Changed files:"
+        cat ${{ runner.temp }}/changed-files.txt
+
+    - name: Run Cocodif
+      id: cocodif
+      shell: bash
+      run: |
+        CHANGED_ARG=""
+        if [ -n "${{ inputs.changed-files }}" ]; then
+          CHANGED_ARG="-f ${{ inputs.changed-files }}"
+        else
+          CHANGED_ARG="-f ${{ runner.temp }}/changed-files.txt"
+        fi
+
+        FAIL_UNDER_ARG=""
+        if [ -n "${{ inputs.fail-under }}" ]; then
+          FAIL_UNDER_ARG="--fail-under ${{ inputs.fail-under }}"
+        fi
+
+        # Expand coverage file glob
+        COVERAGE_ARGS=""
+        IFS=',' read -ra PATTERNS <<< "${{ inputs.coverage-files }}"
+        for pattern in "${PATTERNS[@]}"; do
+          pattern=$(echo "$pattern" | xargs)
+          while IFS= read -r -d '' file; do
+            COVERAGE_ARGS="$COVERAGE_ARGS -c \"$file\""
+          done < <(find . -path "$pattern" -type f -print0 2>/dev/null)
+        done
+
+        OUTPUT_PATH="${{ runner.temp }}/cocodif-report.md"
+        OUTPUT_FORMAT_ARG="--output-format ${{ inputs.output-format }}"
+
+        set +e
+        eval "Cocodif \
+          $COVERAGE_ARGS \
+          $CHANGED_ARG \
+          --format ${{ inputs.format }} \
+          --include '${{ inputs.include }}' \
+          --exclude '${{ inputs.exclude }}' \
+          --title '${{ inputs.title }}' \
+          --root '${{ github.workspace }}' \
+          $OUTPUT_FORMAT_ARG \
+          -o \"$OUTPUT_PATH\" \
+          $FAIL_UNDER_ARG"
+        EXIT_CODE=$?
+        set -e
+
+        echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+
+        if [ -f "$OUTPUT_PATH" ]; then
+          echo "report-path=$OUTPUT_PATH" >> "$GITHUB_STEP_SUMMARY"
+          cat "$OUTPUT_PATH"
+        fi
+
+        exit $EXIT_CODE
+
+    - name: Write step summary
+      if: ${{ inputs.summary == 'true' && always() }}
+      shell: bash
+      run: |
+        if [ -f "${{ runner.temp }}/cocodif-report.md" ]; then
+          echo "## ${{ inputs.title }}" >> "$GITHUB_STEP_SUMMARY"
+          cat "${{ runner.temp }}/cocodif-report.md" >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+    - name: Post PR comment
+      if: ${{ inputs.comment == 'true' && github.event_name == 'pull_request' && always() }}
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        header: ${{ inputs.comment-marker }}
+        path: ${{ runner.temp }}/cocodif-report.md
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

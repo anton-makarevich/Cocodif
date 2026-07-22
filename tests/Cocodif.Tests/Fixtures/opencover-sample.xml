@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CoverageSession>
+  <Modules>
+    <Module>
+      <Files>
+        <File uid="1" fullPath="/home/user/repo/src/App/Program.cs" />
+        <File uid="2" fullPath="/home/user/repo/src/App/Services/AuthService.cs" />
+        <File uid="3" fullPath="/home/user/repo/src/App/Models/User.cs" />
+      </Files>
+      <Classes>
+        <Class>
+          <Methods>
+            <Method>
+              <SequencePoints>
+                <SequencePoint vc="1" fileid="1" sl="10" />
+                <SequencePoint vc="1" fileid="1" sl="11" />
+                <SequencePoint vc="0" fileid="1" sl="12" />
+                <SequencePoint vc="1" fileid="1" sl="15" />
+                <SequencePoint vc="0" fileid="1" sl="20" />
+                <SequencePoint vc="0" fileid="2" sl="5" />
+                <SequencePoint vc="1" fileid="2" sl="6" />
+                <SequencePoint vc="0" fileid="2" sl="10" />
+                <SequencePoint vc="1" fileid="3" sl="3" />
+                <SequencePoint vc="1" fileid="3" sl="4" />
+              </SequencePoints>
+            </Method>
+          </Methods>
+        </Class>
+      </Classes>
+    </Module>
+  </Modules>
+</CoverageSession>
