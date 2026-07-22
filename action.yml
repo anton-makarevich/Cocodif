@@ -153,4 +153,4 @@ runs:
         header: ${{ inputs.comment-marker }}
         path: ${{ runner.temp }}/cocodif-report.md
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
