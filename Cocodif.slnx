@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="src\Cocodif\Cocodif.csproj" />
+  <Project Path="tests\Cocodif.Tests\Cocodif.Tests.csproj" />
+</Solution>
