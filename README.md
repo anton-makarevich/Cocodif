@@ -8,7 +8,7 @@ Diff-coverage reporter for .NET. Parses **OpenCover** or **Cobertura** XML cover
 
 ```yaml
 - name: Coverage report
-  uses: sanet/Cocodif@v1
+  uses: anton-makarevich/Cocodif@v1
   with:
     coverage-files: '**/coverage.opencover.xml'
     fail-under: '80'
@@ -23,17 +23,84 @@ dotnet tool install --global Sanet.Cocodif
 Cocodif -c coverage.xml -f changed-files.txt -o report.md
 ```
 
-## Components
+## GitHub Action
 
-| Component | Path | Description |
-|-----------|------|-------------|
-| **Cocodif CLI** | [`src/Cocodif/`](src/Cocodif/) | .NET global tool — the core engine |
-| **GitHub Action** | [`action/`](action/) | Composite action that wraps the CLI for GitHub Actions |
+A composite GitHub Action that generates diff-coverage reports and posts them as PR comments or step summaries.
 
-Each component has its own README with detailed usage, inputs, and examples:
+### Action Inputs
 
-- [`src/Cocodif/README.md`](src/Cocodif/README.md) — CLI options, exit codes, output formats
-- [`action/README.md`](action/README.md) — Action inputs/outputs, permissions, workflow examples
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `coverage-files` | Yes | - | Glob pattern or comma-separated list of coverage XML file paths |
+| `changed-files` | No | `''` | Path to file listing changed files. If omitted, computed via `git diff`. |
+| `format` | No | `auto` | Coverage format: `auto`, `opencover`, or `cobertura` |
+| `include` | No | `**/*` | Glob pattern for files to include |
+| `exclude` | No | `**/obj/**,**/bin/**` | Glob pattern for files to exclude |
+| `title` | No | `Coverage Report` | Report title |
+| `output-format` | No | `markdown` | Output format: `markdown`, `json`, or `both` |
+| `fail-under` | No | `''` | Fail if overall diff coverage is below this percentage |
+| `comment` | No | `true` | Post the report as a PR comment |
+| `comment-marker` | No | `<!-- cocodif-coverage -->` | HTML comment marker for sticky PR comment |
+| `summary` | No | `true` | Write the report to `$GITHUB_STEP_SUMMARY` |
+| `cocodif-version` | No | `0.1.0` | Version of the Cocodif NuGet tool to install |
+
+### Action Outputs
+
+| Output | Description |
+|--------|-------------|
+| `coverage-percent` | Overall diff-coverage percentage |
+| `report-path` | Path to the generated report file |
+
+### Required Permissions
+
+```yaml
+permissions:
+  pull-requests: write
+  contents: read
+```
+
+### Consumer Workflow Example
+
+```yaml
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for git diff merge-base
+
+      - name: Run tests with coverage
+        run: dotnet test --collect:"XPlat Code Coverage"
+
+      - name: Coverage report
+        uses: anton-makarevich/Cocodif@v1
+        with:
+          coverage-files: '**/coverage.opencover.xml'
+          fail-under: '80'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## CLI
+
+The .NET global tool — the core engine.
+
+```bash
+dotnet tool install --global Sanet.Cocodif
+```
+
+For CLI options, exit codes, and output formats, see [`src/Cocodif/README.md`](src/Cocodif/README.md).
 
 ## Project Structure
 
@@ -45,9 +112,7 @@ Cocodif/
 │   ├── Services/          # Path normalization, diff logic, coverage merging
 │   └── Models/            # Data models
 ├── tests/Cocodif.Tests/   # xUnit tests
-├── action/                # GitHub Action (composite)
-│   ├── action.yml
-│   └── README.md
+├── action.yml             # GitHub Action definition (composite)
 └── Cocodif.sln
 ```
 
