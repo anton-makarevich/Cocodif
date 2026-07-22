@@ -25,25 +25,21 @@ public class MarkdownReporter : IReporter
             return sb.ToString();
         }
 
-        sb.AppendLine("| File | Uncovered Lines | Changed Lines | Coverage |");
-        sb.AppendLine("|------|----------------|---------------|----------|");
+        sb.AppendLine("| File | Changed Lines | Uncovered Lines | Coverage |");
+        sb.AppendLine("|------|---------------|-----------------|----------|");
 
         foreach (var file in report.Files.OrderBy(f => f.RelativePath, StringComparer.OrdinalIgnoreCase))
         {
-            var uncoveredCount = file.UncoveredChangedCount;
             var coverage = file.CoveragePercent;
 
-            var lineNumbers = file.UncoveredLines
+            var relevantLines = file.UncoveredLines
                 .Where(l => file.ChangedLines.Count == 0 || file.ChangedLines.Contains(l))
                 .OrderBy(l => l)
-                .Take(20)
-                .Select(l => l.ToString());
+                .ToList();
 
-            var uncoveredDisplay = uncoveredCount > 0
-                ? string.Join(", ", lineNumbers) + (uncoveredCount > 20 ? $" (+{uncoveredCount - 20} more)" : "")
-                : "-";
+            var uncoveredDisplay = FormatLineRanges(relevantLines);
 
-            sb.AppendLine($"| `{file.RelativePath}` | {uncoveredCount} | {file.TotalChangedLines} | {coverage:F1}% |");
+            sb.AppendLine($"| `{file.RelativePath}` | {file.TotalChangedLines} | {uncoveredDisplay} | {coverage:F1}% |");
         }
 
         sb.AppendLine();
@@ -55,5 +51,37 @@ public class MarkdownReporter : IReporter
         sb.AppendLine($"- **Overall diff coverage**: {report.TotalCoveragePercent:F1}%");
 
         return sb.ToString();
+    }
+
+    internal static string FormatLineRanges(List<int> lines)
+    {
+        if (lines.Count == 0)
+            return "-";
+
+        var ranges = new List<string>();
+        var rangeStart = lines[0];
+        var rangeEnd = lines[0];
+
+        for (var i = 1; i < lines.Count; i++)
+        {
+            if (lines[i] == rangeEnd + 1)
+            {
+                rangeEnd = lines[i];
+            }
+            else
+            {
+                ranges.Add(rangeStart == rangeEnd
+                    ? rangeStart.ToString()
+                    : $"{rangeStart}-{rangeEnd}");
+                rangeStart = lines[i];
+                rangeEnd = lines[i];
+            }
+        }
+
+        ranges.Add(rangeStart == rangeEnd
+            ? rangeStart.ToString()
+            : $"{rangeStart}-{rangeEnd}");
+
+        return string.Join(", ", ranges);
     }
 }

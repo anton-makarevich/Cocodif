@@ -9,7 +9,7 @@
     <AssemblyName>Cocodif</AssemblyName>
 
     <!-- Cocodif version — independent of any other product -->
-    <CocodifVersion>0.1.0</CocodifVersion>
+    <CocodifVersion>0.2.0</CocodifVersion>
     <Version>$(CocodifVersion)</Version>
     <AssemblyVersion>$(CocodifVersion).0</AssemblyVersion>
     <FileVersion>$(CocodifVersion).0</FileVersion>
@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
+    <PackageReference Include="System.CommandLine" Version="2.0.10" />
   </ItemGroup>
 
 </Project>
