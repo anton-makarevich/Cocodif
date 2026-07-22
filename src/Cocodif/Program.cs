@@ -10,60 +10,60 @@ public static class Program
 {
     public static async Task<int> Main(string[] args)
     {
-        var coverageOption = new Option<FileInfo[]>(
-            name: "--coverage",
-            description: "Path(s) to coverage XML file(s) (OpenCover or Cobertura)")
+        var coverageOption = new Option<FileInfo[]>("--coverage", "-c")
         {
-            IsRequired = true,
-            AllowMultipleArgumentsPerToken = true
+            Description = "Path(s) to coverage XML file(s) (OpenCover or Cobertura)"
         };
-        coverageOption.AddAlias("-c");
 
-        var formatOption = new Option<string>(
-            name: "--format",
-            description: "Coverage format: opencover, cobertura, or auto",
-            getDefaultValue: () => "auto");
-
-        var changedFilesOption = new Option<FileInfo>(
-            name: "--changed-files",
-            description: "Path to file containing list of changed files (one per line)")
+        var formatOption = new Option<string>("--format")
         {
-            IsRequired = true
+            Description = "Coverage format: opencover, cobertura, or auto",
+            DefaultValueFactory = _ => "auto"
         };
-        changedFilesOption.AddAlias("-f");
 
-        var rootOption = new Option<DirectoryInfo?>(
-            name: "--root",
-            description: "Repository root for normalizing absolute paths to repo-relative");
+        var changedFilesOption = new Option<FileInfo>("--changed-files", "-f")
+        {
+            Description = "Path to file containing list of changed files (one per line)"
+        };
 
-        var includeOption = new Option<string>(
-            name: "--include",
-            description: "Glob pattern for files to include",
-            getDefaultValue: () => "**/*");
+        var rootOption = new Option<DirectoryInfo?>("--root")
+        {
+            Description = "Repository root for normalizing absolute paths to repo-relative"
+        };
 
-        var excludeOption = new Option<string>(
-            name: "--exclude",
-            description: "Glob pattern for files to exclude",
-            getDefaultValue: () => "**/obj/**,**/bin/**");
+        var includeOption = new Option<string>("--include")
+        {
+            Description = "Glob pattern for files to include",
+            DefaultValueFactory = _ => "**/*"
+        };
 
-        var titleOption = new Option<string>(
-            name: "--title",
-            description: "Report title",
-            getDefaultValue: () => "Coverage Report");
+        var excludeOption = new Option<string>("--exclude")
+        {
+            Description = "Glob pattern for files to exclude",
+            DefaultValueFactory = _ => "**/obj/**,**/bin/**"
+        };
 
-        var outputFormatOption = new Option<string>(
-            name: "--output-format",
-            description: "Output format: markdown, json, or both",
-            getDefaultValue: () => "markdown");
+        var titleOption = new Option<string>("--title")
+        {
+            Description = "Report title",
+            DefaultValueFactory = _ => "Coverage Report"
+        };
 
-        var outputOption = new Option<FileInfo?>(
-            name: "--output",
-            description: "Output file path(s)");
-        outputOption.AddAlias("-o");
+        var outputFormatOption = new Option<string>("--output-format")
+        {
+            Description = "Output format: markdown, json, or both",
+            DefaultValueFactory = _ => "markdown"
+        };
 
-        var failUnderOption = new Option<double?>(
-            name: "--fail-under",
-            description: "Fail (exit code 1) if overall diff coverage is below this percentage");
+        var outputOption = new Option<FileInfo?>("--output", "-o")
+        {
+            Description = "Output file path(s)"
+        };
+
+        var failUnderOption = new Option<double?>("--fail-under")
+        {
+            Description = "Fail (exit code 1) if overall diff coverage is below this percentage"
+        };
 
         var rootCommand = new RootCommand(
             "Diff-coverage reporter — parses coverage XML and reports coverage on changed files")
@@ -73,25 +73,26 @@ public static class Program
             outputOption, failUnderOption
         };
 
-        rootCommand.SetHandler(async (context) =>
+        rootCommand.SetAction(async (parseResult, _) =>
         {
-            var coverageFiles = context.ParseResult.GetValueForOption(coverageOption)!;
-            var format = context.ParseResult.GetValueForOption(formatOption)!;
-            var changedFilesPath = context.ParseResult.GetValueForOption(changedFilesOption)!;
-            var root = context.ParseResult.GetValueForOption(rootOption);
-            var include = context.ParseResult.GetValueForOption(includeOption)!;
-            var exclude = context.ParseResult.GetValueForOption(excludeOption)!;
-            var title = context.ParseResult.GetValueForOption(titleOption)!;
-            var outputFormat = context.ParseResult.GetValueForOption(outputFormatOption)!;
-            var output = context.ParseResult.GetValueForOption(outputOption);
-            var failUnder = context.ParseResult.GetValueForOption(failUnderOption);
+            var coverageFiles = parseResult.GetValue(coverageOption)!;
+            var format = parseResult.GetValue(formatOption)!;
+            var changedFilesPath = parseResult.GetValue(changedFilesOption)!;
+            var root = parseResult.GetValue(rootOption);
+            var include = parseResult.GetValue(includeOption)!;
+            var exclude = parseResult.GetValue(excludeOption)!;
+            var title = parseResult.GetValue(titleOption)!;
+            var outputFormat = parseResult.GetValue(outputFormatOption)!;
+            var output = parseResult.GetValue(outputOption);
+            var failUnder = parseResult.GetValue(failUnderOption);
 
-            context.ExitCode = await RunAsync(
+            return await RunAsync(
                 coverageFiles, format, changedFilesPath, root,
                 include, exclude, title, outputFormat, output, failUnder);
         });
 
-        return await rootCommand.InvokeAsync(args);
+        var parseResult = rootCommand.Parse(args);
+        return await parseResult.InvokeAsync();
     }
 
     internal static async Task<int> RunAsync(
@@ -117,7 +118,7 @@ public static class Program
             {
                 if (!file.Exists)
                 {
-                    Console.Error.WriteLine($"Error: Coverage file not found: {file.FullName}");
+                    await Console.Error.WriteLineAsync($"Error: Coverage file not found: {file.FullName}");
                     return 3;
                 }
 
@@ -129,7 +130,7 @@ public static class Program
 
             if (!changedFilesPath.Exists)
             {
-                Console.Error.WriteLine($"Error: Changed files list not found: {changedFilesPath.FullName}");
+                await Console.Error.WriteLineAsync($"Error: Changed files list not found: {changedFilesPath.FullName}");
                 return 3;
             }
 
@@ -159,7 +160,7 @@ public static class Program
 
             if (reporters.Count == 0)
             {
-                Console.Error.WriteLine("Error: Invalid output format. Use markdown, json, or both.");
+                await Console.Error.WriteLineAsync("Error: Invalid output format. Use markdown, json, or both.");
                 return 2;
             }
 
@@ -175,7 +176,7 @@ public static class Program
                         : output.FullName;
 
                     await File.WriteAllTextAsync(outputPath, content);
-                    Console.Error.WriteLine($"Report written to: {outputPath}");
+                    await Console.Error.WriteLineAsync($"Report written to: {outputPath}");
                 }
                 else
                 {
@@ -185,7 +186,7 @@ public static class Program
 
             if (failUnder.HasValue && report.TotalCoveragePercent < failUnder.Value)
             {
-                Console.Error.WriteLine(
+                await Console.Error.WriteLineAsync(
                     $"Coverage {report.TotalCoveragePercent:F1}% is below threshold {failUnder.Value:F1}%");
                 return 1;
             }
@@ -194,7 +195,7 @@ public static class Program
         }
         catch (ArgumentException ex)
         {
-            Console.Error.WriteLine($"Error: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error: {ex.Message}");
             return 2;
         }
     }
