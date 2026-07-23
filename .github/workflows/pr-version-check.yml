@@ -28,14 +28,27 @@ jobs:
           echo "Main version: $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Get version from action.yml
+        id: action-version
+        run: |
+          version=$(awk '/cocodif-version:/{found=1} found && /default:/{print; exit}' action.yml | sed "s/.*default: '\(.*\)'/\1/")
+          echo "action.yml version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Compare versions
         run: |
           current="${{ steps.current-version.outputs.version }}"
           main="${{ steps.main-version.outputs.version }}"
-          echo "Current: $current"
-          echo "Main:    $main"
+          action="${{ steps.action-version.outputs.version }}"
+          echo "Current:      $current"
+          echo "Main:         $main"
+          echo "action.yml:   $action"
           if [ "$current" = "$main" ]; then
             echo "::error::CocodifVersion ($current) must be bumped before merging into main."
             exit 1
           fi
-          echo "Version differs — check passed."
+          if [ "$current" != "$action" ]; then
+            echo "::error::CocodifVersion in Cocodif.csproj ($current) does not match default in action.yml ($action)."
+            exit 1
+          fi
+          echo "All version checks passed."
