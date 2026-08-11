@@ -40,6 +40,43 @@ public class OpenCoverParserTests
     }
 
     [Fact]
+    public void Parse_ValidOpenCover_ExtractsCoveredLines()
+    {
+        var doc = LoadFixture("opencover-sample.xml");
+        var result = _parser.Parse(doc);
+
+        result.CoveredLines.Count.ShouldBe(6);
+
+        result.CoveredLines.ShouldContain(ul =>
+            ul.FilePath == "/home/user/repo/src/App/Program.cs" && ul.LineNumber == 10);
+        result.CoveredLines.ShouldContain(ul =>
+            ul.FilePath == "/home/user/repo/src/App/Program.cs" && ul.LineNumber == 11);
+        result.CoveredLines.ShouldContain(ul =>
+            ul.FilePath == "/home/user/repo/src/App/Program.cs" && ul.LineNumber == 15);
+        result.CoveredLines.ShouldContain(ul =>
+            ul.FilePath == "/home/user/repo/src/App/Services/AuthService.cs" && ul.LineNumber == 6);
+        result.CoveredLines.ShouldContain(ul =>
+            ul.FilePath == "/home/user/repo/src/App/Models/User.cs" && ul.LineNumber == 3);
+        result.CoveredLines.ShouldContain(ul =>
+            ul.FilePath == "/home/user/repo/src/App/Models/User.cs" && ul.LineNumber == 4);
+    }
+
+    [Fact]
+    public void Parse_DoesNotDoubleCountLines()
+    {
+        var doc = LoadFixture("opencover-sample.xml");
+        var result = _parser.Parse(doc);
+
+        var programLines = result.UncoveredLines
+            .Concat(result.CoveredLines)
+            .Where(ul => ul.FilePath == "/home/user/repo/src/App/Program.cs")
+            .Select(ul => ul.LineNumber)
+            .OrderBy(l => l);
+
+        programLines.ShouldBe([10, 11, 12, 15, 20]);
+    }
+
+    [Fact]
     public void Parse_SkipsCoveredLines()
     {
         var doc = LoadFixture("opencover-sample.xml");

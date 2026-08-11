@@ -194,6 +194,70 @@ public class CliIntegrationTests
     }
 
     [Fact]
+    public async Task RunAsync_CoveredAndUncoveredLines_ComputesRealCoverage()
+    {
+        var tempDir = Path.GetTempPath();
+        var guid = Guid.NewGuid().ToString("N");
+        var covPath = Path.Combine(tempDir, $"cov-{guid}.xml");
+        var changedPath = Path.Combine(tempDir, $"changed-{guid}.txt");
+        var outputPath = Path.Combine(tempDir, $"report-{guid}.md");
+
+        await File.WriteAllTextAsync(covPath, """
+            <?xml version="1.0" encoding="utf-8"?>
+            <CoverageSession>
+              <Modules>
+                <Module>
+                  <Files>
+                    <File uid="1" fullPath="/repo/src/A.cs" />
+                  </Files>
+                  <Classes>
+                    <Class>
+                      <Methods>
+                        <Method>
+                          <SequencePoints>
+                            <SequencePoint vc="1" fileid="1" sl="1" />
+                            <SequencePoint vc="1" fileid="1" sl="2" />
+                            <SequencePoint vc="0" fileid="1" sl="3" />
+                          </SequencePoints>
+                        </Method>
+                      </Methods>
+                    </Class>
+                  </Classes>
+                </Module>
+              </Modules>
+            </CoverageSession>
+            """);
+
+        await File.WriteAllTextAsync(changedPath, "src/A.cs");
+
+        try
+        {
+            var result = await Program.RunAsync(
+                [new FileInfo(covPath)],
+                "auto",
+                new FileInfo(changedPath),
+                new DirectoryInfo("/repo"),
+                "**/*",
+                "",
+                "Test",
+                "markdown",
+                new FileInfo(outputPath),
+                60.0);
+
+            result.ShouldBe(0);
+
+            var content = await File.ReadAllTextAsync(outputPath);
+            content.ShouldContain("66.7%");
+        }
+        finally
+        {
+            File.Delete(covPath);
+            File.Delete(changedPath);
+            File.Delete(outputPath);
+        }
+    }
+
+    [Fact]
     public async Task RunAsync_MultipleCoverageFiles_MergesResults()
     {
         var tempDir = Path.GetTempPath();
