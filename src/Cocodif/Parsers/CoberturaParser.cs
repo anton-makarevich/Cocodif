@@ -8,7 +8,8 @@ public class CoberturaParser : ICoverageParser
     public CoverageData Parse(XDocument document)
     {
         var files = new Dictionary<string, string>();
-        var uncoveredLines = new List<UncoveredLine>();
+        var uncoveredLines = new List<SourceLine>();
+        var coveredLines = new List<SourceLine>();
 
         var packages = document.Root?.Elements("packages").Elements("package")
                     ?? document.Root?.Elements("package")
@@ -36,9 +37,20 @@ public class CoberturaParser : ICoverageParser
                     var hits = line.Attribute("hits")?.Value;
                     var lineNumber = line.Attribute("number")?.Value;
 
-                    if (hits == "0" && lineNumber != null)
+                    if (lineNumber == null)
+                        continue;
+
+                    if (hits == "0")
                     {
-                        uncoveredLines.Add(new UncoveredLine
+                        uncoveredLines.Add(new SourceLine
+                        {
+                            FilePath = filename,
+                            LineNumber = int.Parse(lineNumber)
+                        });
+                    }
+                    else if (hits != null)
+                    {
+                        coveredLines.Add(new SourceLine
                         {
                             FilePath = filename,
                             LineNumber = int.Parse(lineNumber)
@@ -51,7 +63,8 @@ public class CoberturaParser : ICoverageParser
         return new CoverageData
         {
             Files = files,
-            UncoveredLines = uncoveredLines
+            UncoveredLines = uncoveredLines,
+            CoveredLines = coveredLines
         };
     }
 }

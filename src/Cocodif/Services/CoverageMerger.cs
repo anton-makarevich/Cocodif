@@ -9,28 +9,8 @@ public class CoverageMerger
 
     public void Add(CoverageData data, PathNormalizer normalizer)
     {
-        var grouped = data.UncoveredLines
-            .GroupBy(ul => normalizer.Normalize(ul.FilePath));
-
-        foreach (var group in grouped)
-        {
-            var relativePath = group.Key;
-
-            if (!_uncoveredByFile.TryGetValue(relativePath, out var uncovered))
-            {
-                uncovered = [];
-                _uncoveredByFile[relativePath] = uncovered;
-            }
-
-            foreach (var line in group)
-                uncovered.Add(line.LineNumber);
-
-            if (!_coveredByFile.TryGetValue(relativePath, out var covered))
-            {
-                covered = [];
-                _coveredByFile[relativePath] = covered;
-            }
-        }
+        AddGrouped(data.UncoveredLines, _uncoveredByFile, normalizer);
+        AddGrouped(data.CoveredLines, _coveredByFile, normalizer);
 
         foreach (var kvp in data.Files)
         {
@@ -38,6 +18,24 @@ public class CoverageMerger
 
             if (!_coveredByFile.ContainsKey(relativePath))
                 _coveredByFile[relativePath] = [];
+        }
+    }
+
+    private static void AddGrouped(
+        List<SourceLine> lines,
+        Dictionary<string, SortedSet<int>> byFile,
+        PathNormalizer normalizer)
+    {
+        foreach (var group in lines.GroupBy(ul => normalizer.Normalize(ul.FilePath)))
+        {
+            if (!byFile.TryGetValue(group.Key, out var lineNumbers))
+            {
+                lineNumbers = [];
+                byFile[group.Key] = lineNumbers;
+            }
+
+            foreach (var line in group)
+                lineNumbers.Add(line.LineNumber);
         }
     }
 
@@ -58,7 +56,7 @@ public class CoverageMerger
             uncovered ??= [];
 
             // A line covered in any report is covered
-            covered.ExceptWith(uncovered);
+            uncovered.ExceptWith(covered);
 
             result[path] = (covered, uncovered);
         }
