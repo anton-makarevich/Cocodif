@@ -42,7 +42,7 @@ A composite GitHub Action that generates diff-coverage reports and posts them as
 | `comment` | No | `true` | Post the report as a PR comment |
 | `comment-marker` | No | `<!-- cocodif-coverage -->` | HTML comment marker for sticky PR comment |
 | `summary` | No | `true` | Write the report to `$GITHUB_STEP_SUMMARY` |
-| `cocodif-version` | No | `0.1.0` | Version of the Cocodif NuGet tool to install |
+| `cocodif-version` | No | `0.2.3` | Version of the Cocodif NuGet tool to install |
 
 ### Action Outputs
 

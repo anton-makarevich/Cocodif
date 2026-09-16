@@ -53,7 +53,7 @@ inputs:
   cocodif-version:
     description: 'Version of the Cocodif NuGet tool to install'
     required: false
-    default: '0.2.2'
+    default: '0.2.3'
 
 outputs:
   coverage-percent:
@@ -131,8 +131,39 @@ runs:
         echo "exit-code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
 
         if [ -f "$OUTPUT_PATH" ]; then
-          echo "report-path=$OUTPUT_PATH" >> "$GITHUB_STEP_SUMMARY"
+          echo "report-path=$OUTPUT_PATH" >> "$GITHUB_OUTPUT"
           cat "$OUTPUT_PATH"
+        fi
+
+        # Compute the overall diff-coverage percentage from a JSON report
+        # so the coverage-percent output is populated.
+        case "${{ inputs.output-format }}" in
+          json)
+            JSON_FILE="$OUTPUT_PATH"
+            ;;
+          both)
+            JSON_FILE="${{ runner.temp }}/cocodif-report.json"
+            ;;
+          markdown)
+            JSON_FILE="${{ runner.temp }}/cocodif-report.json"
+            set +e
+            eval "Cocodif \
+              $COVERAGE_ARGS \
+              $CHANGED_ARG \
+              --format ${{ inputs.format }} \
+              --include '${{ inputs.include }}' \
+              --exclude '${{ inputs.exclude }}' \
+              --title '${{ inputs.title }}' \
+              --root '${{ github.workspace }}' \
+              --output-format json \
+              -o \"$JSON_FILE\""
+            set -e
+            ;;
+        esac
+
+        if [ -f "$JSON_FILE" ]; then
+          COVERAGE_PERCENT=$(grep -oE '"overallCoveragePercent": *[0-9.]+' "$JSON_FILE" | grep -oE '[0-9.]+' | head -1)
+          echo "coverage-percent=$COVERAGE_PERCENT" >> "$GITHUB_OUTPUT"
         fi
 
         exit $EXIT_CODE
